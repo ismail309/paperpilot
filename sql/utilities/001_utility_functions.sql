@@ -124,8 +124,8 @@ $$ LANGUAGE plpgsql;
 -- UTILITY: Cascade Campus Deactivation
 -- ==========================================
 /**
- * @description Deactivates all campus memberships when a campus is no longer active.
- * @logic Checks if the NEW status is not 'active'. If so, it updates all campus_members 
+ * @description Deactivates all campus memberships and user roles when a campus is no longer active.
+ * @logic Checks if the NEW status is not 'active'. If so, it updates all campus_members and user_roles
  * tied to this campus to 'inactive'.
  * @trigger trg_cascade_campus_deactivation (AFTER UPDATE OF sta_id ON campuses)
  */
@@ -139,7 +139,13 @@ BEGIN
     SELECT sta_id INTO v_inactive_sta_id FROM statuses WHERE sta_group = 'general' AND sta_name = 'inactive';
 
     IF NEW.sta_id != v_active_sta_id THEN
+        -- 1. Deactivate Campus Memberships
         UPDATE campus_members
+        SET sta_id = v_inactive_sta_id
+        WHERE cam_id = NEW.cam_id;
+
+        -- 2. Deactivate User Roles
+        UPDATE user_roles
         SET sta_id = v_inactive_sta_id
         WHERE cam_id = NEW.cam_id;
     END IF;
@@ -153,8 +159,8 @@ $$ LANGUAGE plpgsql;
 -- ==========================================
 /**
  * @description Deactivates all related entities when a Head Office is no longer active.
- * @logic Checks if the NEW status is not 'active'. If so, it cascades the 'inactive' status 
- * to all Campuses, Campus Members, and Organisation Members belonging to this Head Office.
+ * @logic Checks if the NEW status is not 'active'. If so, it cascades the 'inactive' status
+ * to all Campuses, Campus Members, Organisation Members, and User Roles belonging to this Head Office.
  * @trigger trg_cascade_head_office_deactivation (AFTER UPDATE OF sta_id ON head_offices)
  */
 CREATE OR REPLACE FUNCTION fn_cascade_head_office_deactivation()
@@ -167,20 +173,29 @@ BEGIN
     SELECT sta_id INTO v_inactive_sta_id FROM statuses WHERE sta_group = 'general' AND sta_name = 'inactive';
 
     IF NEW.sta_id != v_active_sta_id THEN
-        -- 1. Cascade to Campuses
+        -- 1. Deactivate Campuses
         UPDATE campuses
         SET sta_id = v_inactive_sta_id
         WHERE head_off_id = NEW.head_off_id;
 
-        -- 2. Cascade to Campus Memberships
+        -- 2. Deactivate Organisation Memberships
+        UPDATE organisation_members
+        SET sta_id = v_inactive_sta_id
+        WHERE head_off_id = NEW.head_off_id;
+
+        -- 3. Deactivate Campus Memberships
         UPDATE campus_members
         SET sta_id = v_inactive_sta_id
         WHERE cam_id IN (SELECT cam_id FROM campuses WHERE head_off_id = NEW.head_off_id);
 
-        -- 3. Cascade to Organisation Memberships
-        UPDATE organisation_members
+        -- 4. Deactivate User Roles (Org Level and Campus Level)
+        UPDATE user_roles
         SET sta_id = v_inactive_sta_id
         WHERE head_off_id = NEW.head_off_id;
+
+        UPDATE user_roles
+        SET sta_id = v_inactive_sta_id
+        WHERE cam_id IN (SELECT cam_id FROM campuses WHERE head_off_id = NEW.head_off_id);
     END IF;
     RETURN NEW;
 END;

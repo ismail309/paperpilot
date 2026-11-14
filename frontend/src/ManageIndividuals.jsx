@@ -89,6 +89,8 @@ export default function ManageIndividuals() {
               type="email"
               placeholder="Email"
               required
+              pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
+              title="Please enter a valid email address with a domain (e.g., user@example.com)"
               className="w-full p-2 border rounded"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}

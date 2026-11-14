@@ -207,6 +207,9 @@ export default function PlatformAdmin() {
               <input
                 type="email"
                 placeholder="Email"
+                required
+                pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
+                title="Please enter a valid email address with a domain (e.g., user@example.com)"
                 className="w-full p-2 border rounded"
                 value={hoForm.email}
                 onChange={(e) =>
@@ -216,6 +219,7 @@ export default function PlatformAdmin() {
               <input
                 type="text"
                 placeholder="City"
+                required
                 className="w-full p-2 border rounded"
                 value={hoForm.city}
                 onChange={(e) => setHoForm({ ...hoForm, city: e.target.value })}
@@ -299,6 +303,7 @@ export default function PlatformAdmin() {
               <input
                 type="text"
                 placeholder="City"
+                required
                 className="w-full p-2 border rounded"
                 value={campForm.city}
                 onChange={(e) =>
@@ -384,6 +389,8 @@ export default function PlatformAdmin() {
                 type="email"
                 placeholder="Email"
                 required
+                pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
+                title="Please enter a valid email address with a domain (e.g., user@example.com)"
                 className="w-full p-2 border rounded"
                 value={userForm.email}
                 onChange={(e) =>
@@ -472,6 +479,8 @@ export default function PlatformAdmin() {
                 <tr>
                   <th className="p-4 font-medium text-gray-600">Name</th>
                   <th className="p-4 font-medium text-gray-600">Email</th>
+                  <th className="p-4 font-medium text-gray-600">Head Office</th>
+                  <th className="p-4 font-medium text-gray-600">Campus</th>
                   <th className="p-4 font-medium text-gray-600">Role</th>
                   <th className="p-4 font-medium text-gray-600">Actions</th>
                 </tr>
@@ -479,13 +488,12 @@ export default function PlatformAdmin() {
               <tbody>
                 {users && users.length > 0 ? (
                   users.map((u, index) => {
-                    // 1. Safely check if active
                     const isActive = Number(u.sta_id) === 1;
-
-                    // 2. Safely format roles (in case roles is null)
                     const roleDisplay = u.roles
                       ? u.roles.replace(/_/g, " ")
                       : "No Role";
+                    const hoDisplay = u.head_office || "-"; // Show dash if null
+                    const campDisplay = u.campus || "-"; // Show dash if null
 
                     return (
                       <tr
@@ -496,13 +504,19 @@ export default function PlatformAdmin() {
                           {u.first_name} {u.last_name}
                         </td>
                         <td className="p-4">{u.email}</td>
+                        <td className="p-4 text-sm text-gray-600">
+                          {hoDisplay}
+                        </td>
+                        <td className="p-4 text-sm text-gray-600">
+                          {campDisplay}
+                        </td>
                         <td className="p-4 capitalize">{roleDisplay}</td>
                         <td className="p-4">
                           <button
                             onClick={() => handleToggleUser(u.usr_id, u.sta_id)}
                             className="text-red-600 hover:underline text-sm font-medium"
                           >
-                            {isActive ? "Deactivate" : "Activate"}
+                            Deactivate
                           </button>
                         </td>
                       </tr>
@@ -510,7 +524,7 @@ export default function PlatformAdmin() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan="4" className="p-4 text-center text-gray-500">
+                    <td colSpan="6" className="p-4 text-center text-gray-500">
                       No users found.
                     </td>
                   </tr>
