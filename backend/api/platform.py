@@ -133,3 +133,55 @@ def create_user(data: UserCreate):
             raise HTTPException(status_code=500, detail=str(e))
     finally:
             conn.close()
+
+# --- INDIVIDUAL USERS ---
+@router.get("/individual-users")
+def get_individual_users():
+    conn = psycopg.connect(get_connection_string())
+    with conn.cursor(row_factory=dict_row) as cursor:
+        cursor.execute("""
+            SELECT u.usr_id, u.first_name, u.last_name, u.email, u.created_at
+            FROM users u
+            JOIN account_types at ON u.act_id = at.act_id
+            WHERE at.act_name = 'individual'
+            ORDER BY u.usr_id DESC
+        """)
+        return cursor.fetchall()
+
+@router.post("/individual-users")
+def create_individual_user(data: UserCreate):
+    conn = psycopg.connect(get_connection_string())
+    try:
+        with conn.cursor(row_factory=dict_row) as cursor:
+            # Check if email exists
+            cursor.execute("SELECT usr_id FROM users WHERE email = %s", (data.email,))
+            if cursor.fetchone():
+                raise HTTPException(status_code=400, detail="Email already registered")
+
+            # Hash password
+            hashed_pw = get_password_hash(data.password)
+
+            # Insert User (Force Account Type to 'individual')
+            cursor.execute("""
+                INSERT INTO users (act_id, sta_id, first_name, last_name, email, password_hash)
+                VALUES (fn_get_account_type_id('individual'), fn_get_status_id('general', 'active'), %s, %s, %s, %s)
+                RETURNING usr_id
+            """, (data.first_name, data.last_name, data.email, hashed_pw))
+            
+            new_usr_id = cursor.fetchone()["usr_id"]
+
+            # Assign Role (Force role to 'individual_teacher')
+            cursor.execute("""
+                INSERT INTO user_roles (usr_id, rol_id)
+                VALUES (%s, fn_get_role_id('individual_teacher'))
+            """, (new_usr_id,))
+
+            conn.commit()
+            return {"message": "Individual User created", "usr_id": new_usr_id}
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
