@@ -58,6 +58,10 @@ def get_db_connection():
     return psycopg.connect(get_migration_connection_string())
 
 def setup_tracking_table(cursor):
+    """Creates the alters table and ensures the public schema exists."""
+    # THIS IS THE CRITICAL LINE
+    cursor.execute("CREATE SCHEMA IF NOT EXISTS public;")
+
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS alters (
             alt_id SERIAL PRIMARY KEY,
@@ -170,12 +174,12 @@ def main():
         setup_tracking_table(cursor)
         conn.commit()
 
-        # 2. Run Alters (Only once per folder)
-        run_alter_folders(conn, cursor)
-
-        # 3. Run Utilities (Every time, before procs)
+        # 2. Run Utilities (Every time, before procedures and alters)
         run_utilities(conn, cursor)
 
+        # 3. Run Alters (Only once per folder)
+        run_alter_folders(conn, cursor)
+        
         # 4. Run Stored Procedures (Every time)
         run_stored_procedures(conn, cursor)
 
