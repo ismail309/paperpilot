@@ -91,33 +91,52 @@ The `exam_versions` table stores the logical paper, while `exam_version_question
 ## 📂 Project Structure
 
 ```text
-AOQPGS/
+PaperPilot/
 │
-├── frontend/               # React + TypeScript Frontend
+├── frontend/               # React + Vite + Tailwind Frontend
+│   ├── src/
+│   │   ├── components/     # Reusable UI parts
+│   │   ├── App.jsx         # Main App Router
+│   │   ├── Auth.jsx        # Login/Register UI
+│   │   ├── PlatformLayout.jsx
+│   │   ├── TenantLayout.jsx
+│   │   └── PlatformAdmin.jsx
+│   └── package.json
 │
-├── backend/                # FastAPI Application
-│   ├── api/                # API Routers (v1)
-│   ├── core/               # Config, Security, Auth logic
-│   ├── models/             # SQLAlchemy ORM Models
-│   ├── schemas/            # Pydantic Schemas
-│   ├── services/           # Business Logic
+├── backend/                # FastAPI Application (Modular Monolith)
+│   ├── api/                # API Routers (auth, dashboard, platform)
+│   ├── core/               # Security, Config, Auth logic
+│   ├── schemas/            # Pydantic validation models
+│   ├── services/           # Business logic (future)
+│   ├── config.py           # Environment variables (ignored by Git)
 │   └── main.py             # FastAPI Entrypoint
 │
-├── db_deploy/              # Custom GitHub SQL Migration Tool
-│   └── deploy.py
+├── db_deploy/              # Custom Database CI/CD Tool
+│   ├── bootstrap.py        # Creates DB and App Users securely
+│   ├── deploy.py           # Fetches SQL from GitHub & runs migrations
+│   └── config.py           # Migrator credentials (ignored by Git)
 │
-├── sql/                    # SQL Scripts
-│   ├── alters/             # Schema changes (run once)
-│   │   └── AOQPGS-01-Initilize-database/
-│   │       ├── 001_schema.sql
-│   │       └── 002_seed_data.sql
-│   └── stored_procedures/  # Business logic (run every deployment)
+├── sql/                    # Database Engineering Scripts
+│   │
+│   ├── alters/             # Schema changes (Run ONCE, tracked in 'alters' table)
+│   │   └── PAPERPILOT-01-Core-Foundation/
+│   │       ├── 001_core_tables.sql
+│   │       ├── 002_seed_tenants.sql
+│   │       ├── 003_seed_users_roles.sql
+│   │       └── 004_apply_triggers.sql
+│   │
+│   ├── utilities/          # Helper Functions (Run EVERY deployment)
+│   │   └── 001_utility_functions.sql  # fn_get_status_id, cascade triggers, etc.
+│   │
+│   └── stored_procedures/  # Business Logic (Run EVERY deployment)
+│       └── sp_manage_questions.sql    # CRUD for question bank (Phase 4)
 │
-├── docs/                   # Documentation
-│   └── SAD_v1.0.md         # System Architecture Document
+├── docs/                   # Documentation & Diagrams
+│   └── paperpilot_erd.png  # Database Entity-Relationship Diagram
 │
 ├── requirements.txt        # Python dependencies
-└── pyproject.toml          # uv configuration
+├── pyproject.toml          # uv project configuration
+└── README.md
 ```
 
 ### THE PROJECT FOLLOWS A PHASED ARCHITECTURAL APPROACH:
