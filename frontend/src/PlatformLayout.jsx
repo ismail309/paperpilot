@@ -3,7 +3,7 @@ import { useState } from "react";
 import PlatformAdmin from "./PlatformAdmin";
 import ManageIndividuals from "./ManageIndividuals";
 
-export default function PlatformLayout({ user, onLogout }) {
+export default function PlatformLayout({ data, onLogout }) {
   const [activeNav, setActiveNav] = useState("dashboard");
 
   return (
@@ -57,16 +57,66 @@ export default function PlatformLayout({ user, onLogout }) {
               Platform Admin
             </span>
             <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold">
-              {user.first_name[0]}
-              {user.last_name[0]}
+              {data.user.first_name[0]}
+              {data.user.last_name[0]}
             </div>
           </div>
         </header>
 
-        {/* CONDITIONAL RENDERING */}
         {activeNav === "dashboard" && (
-          <div className="p-8 text-gray-500">
-            Platform stats (Head Offices, Campuses, Users) go here.
+          <div className="p-8 space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Head Offices Card */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 className="text-gray-500 text-sm font-medium mb-2">
+                  Total Head Offices
+                </h3>
+                <p className="text-3xl font-bold text-gray-900">
+                  {data.stats.total_head_offices}
+                </p>
+                <p className="text-sm text-gray-400 mt-2">
+                  Registered organisations
+                </p>
+              </div>
+
+              {/* Campuses Card */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 className="text-gray-500 text-sm font-medium mb-2">
+                  Total Campuses
+                </h3>
+                <p className="text-3xl font-bold text-gray-900">
+                  {data.stats.total_campuses}
+                </p>
+                <p className="text-sm text-gray-400 mt-2">
+                  Across all organisations
+                </p>
+              </div>
+
+              {/* Users Card */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 className="text-gray-500 text-sm font-medium mb-2">
+                  Total Users
+                </h3>
+                <p className="text-3xl font-bold text-gray-900">
+                  {data.stats.total_users}
+                </p>
+                <p className="text-sm text-gray-400 mt-2">
+                  Teachers, Admins & Students
+                </p>
+              </div>
+            </div>
+
+            {/* Welcome Message */}
+            <div className="bg-indigo-600 rounded-2xl p-8 text-white shadow-md">
+              <h2 className="text-2xl font-bold mb-2">
+                Welcome to PaperPilot Admin
+              </h2>
+              <p className="text-indigo-100">
+                From here you can manage all the Head Offices, Campuses, and
+                Users across the entire SaaS platform. Use the sidebar to
+                navigate to the Management Portal or Individual Users.
+              </p>
+            </div>
           </div>
         )}
         {activeNav === "manage" && <PlatformAdmin />}

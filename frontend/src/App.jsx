@@ -61,7 +61,7 @@ export default function App() {
 
   // THE MAGIC ROUTER
   if (data.dashboard_type === "platform") {
-    return <PlatformLayout user={data.user} onLogout={handleLogout} />;
+    return <PlatformLayout data={data} onLogout={handleLogout} />;
   }
 
   return <TenantLayout data={data} onLogout={handleLogout} />;

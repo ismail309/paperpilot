@@ -12,7 +12,12 @@ router = APIRouter()
 def get_head_offices():
     conn = psycopg.connect(get_connection_string())
     with conn.cursor(row_factory=dict_row) as cursor:
-        cursor.execute("SELECT head_off_id, head_off_name, email, city FROM head_offices WHERE sta_id = 1")
+        # ADDED: WHERE sta_id = fn_get_status_id('general', 'active')
+        cursor.execute("""
+            SELECT head_off_id, head_off_name, email, city 
+            FROM head_offices 
+            WHERE sta_id = fn_get_status_id('general', 'active')
+        """)
         return cursor.fetchall()
 
 @router.post("/head-offices")
@@ -47,7 +52,8 @@ def get_campuses():
             SELECT c.cam_id, c.cam_name, c.city, h.head_off_name 
             FROM campuses c 
             JOIN head_offices h ON c.head_off_id = h.head_off_id 
-            WHERE c.sta_id = 1
+            WHERE c.sta_id = fn_get_status_id('general', 'active')
+            AND h.sta_id = fn_get_status_id('general', 'active') 
         """)
         return cursor.fetchall()
 
@@ -84,11 +90,13 @@ def get_users():
                 u.first_name, 
                 u.last_name, 
                 u.email, 
+                u.sta_id,
                 STRING_AGG(r.rol_name, ', ') AS roles
             FROM users u
             LEFT JOIN user_roles ur ON u.usr_id = ur.usr_id
             LEFT JOIN roles r ON ur.rol_id = r.rol_id
-            GROUP BY u.usr_id, u.first_name, u.last_name, u.email
+            WHERE u.sta_id = fn_get_status_id('general', 'active')
+            GROUP BY u.usr_id, u.first_name, u.last_name, u.email, u.sta_id
             ORDER BY u.usr_id DESC
         """)
         return cursor.fetchall()
@@ -125,14 +133,19 @@ def create_user(data: UserCreate):
 
             conn.commit()
             return {"message": "User created", "usr_id": new_usr_id}
-    except psycopg.errors.UniqueViolation: # <-- CATCH UNIQUE ERROR
-            conn.rollback()
-            raise HTTPException(status_code=400, detail="User with this email already exists.")
+    except HTTPException as he:
+        raise he
+    except psycopg.errors.UniqueViolation:
+        conn.rollback()
+        raise HTTPException(status_code=400, detail="Email already registered.")
+    except psycopg.errors.ForeignKeyViolation:
+        conn.rollback()
+        raise HTTPException(status_code=400, detail="Invalid Campus or Head Office selected.")
     except Exception as e:
-            conn.rollback()
-            raise HTTPException(status_code=500, detail=str(e))
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
-            conn.close()
+        conn.close()
 
 # --- INDIVIDUAL USERS ---
 @router.get("/individual-users")
@@ -179,9 +192,91 @@ def create_individual_user(data: UserCreate):
             conn.commit()
             return {"message": "Individual User created", "usr_id": new_usr_id}
     except HTTPException as he:
-        raise he
+            raise he
+    except psycopg.errors.UniqueViolation:
+            conn.rollback()
+            raise HTTPException(status_code=400, detail="Email already registered.")
+    except Exception as e:
+            conn.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+    finally:
+            conn.close()
+
+# --- UPDATE & DEACTIVATE CAMPUS ---
+@router.put("/campuses/{cam_id}")
+def update_campus(cam_id: int, data: CampusCreate):
+    conn = psycopg.connect(get_connection_string())
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                UPDATE campuses 
+                SET cam_name = %s, email = %s, phone_no = %s, city = %s
+                WHERE cam_id = %s
+            """, (data.cam_name, data.email, data.phone_no, data.city, cam_id))
+            conn.commit()
+            return {"message": "Campus updated"}
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         conn.close()
+
+# --- DEACTIVATE HEAD OFFICE ---
+@router.delete("/head-offices/{head_off_id}")
+def deactivate_head_office(head_off_id: int):
+    conn = psycopg.connect(get_connection_string())
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                UPDATE head_offices 
+                SET sta_id = fn_get_status_id('general', 'inactive') 
+                WHERE head_off_id = %s
+            """, (head_off_id,))
+            conn.commit()
+            return {"message": "Head Office and all associated campuses deactivated"}
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+# --- DEACTIVATE campuses ---
+@router.delete("/campuses/{cam_id}")
+def deactivate_campus(cam_id: int):
+    conn = psycopg.connect(get_connection_string())
+    try:
+        with conn.cursor() as cursor:
+            # The Database Trigger handles the campus_members cascade!
+            cursor.execute("""
+                UPDATE campuses 
+                SET sta_id = fn_get_status_id('general', 'inactive') 
+                WHERE cam_id = %s
+            """, (cam_id,))
+            conn.commit()
+            return {"message": "Campus deactivated. Memberships handled by database trigger."}
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+# --- UPDATE & DEACTIVATE USER ---
+@router.put("/users/{usr_id}/status")
+def toggle_user_status(usr_id: int, is_active: bool):
+    conn = psycopg.connect(get_connection_string())
+    try:
+        with conn.cursor() as cursor:
+            status_name = 'active' if is_active else 'inactive'
+            cursor.execute("""
+                UPDATE users 
+                SET sta_id = fn_get_status_id('general', %s) 
+                WHERE usr_id = %s
+            """, (status_name, usr_id))
+            conn.commit()
+            return {"message": f"User status changed to {status_name}"}
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+

@@ -38,6 +38,26 @@ export default function ManageIndividuals() {
     loadData();
   };
 
+  const handleToggleUser = async (usr_id, currentStaId) => {
+    if (
+      !window.confirm(
+        "Are you sure you want to deactivate this individual user?",
+      )
+    )
+      return;
+
+    const isCurrentlyActive = Number(currentStaId) === 1;
+    const newStatus = !isCurrentlyActive;
+
+    await fetch(
+      `http://127.0.0.1:8000/api/v1/platform/users/${usr_id}/status?is_active=${newStatus}`,
+      {
+        method: "PUT",
+      },
+    );
+    loadData(); // Refresh the list
+  };
+
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">
@@ -98,6 +118,7 @@ export default function ManageIndividuals() {
                 <th className="p-4 font-medium text-gray-600">Name</th>
                 <th className="p-4 font-medium text-gray-600">Email</th>
                 <th className="p-4 font-medium text-gray-600">Joined</th>
+                <th className="p-4 font-medium text-gray-600">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -112,6 +133,14 @@ export default function ManageIndividuals() {
                   <td className="p-4">{u.email}</td>
                   <td className="p-4 text-sm text-gray-500">
                     {new Date(u.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="p-4">
+                    <button
+                      onClick={() => handleToggleUser(u.usr_id, u.sta_id)}
+                      className="text-red-600 hover:underline text-sm font-medium"
+                    >
+                      Deactivate
+                    </button>
                   </td>
                 </tr>
               ))}

@@ -5,6 +5,8 @@ export default function PlatformAdmin() {
   const [headOffices, setHeadOffices] = useState([]);
   const [campuses, setCampuses] = useState([]);
   const [users, setUsers] = useState([]);
+  const [errorMsg, setErrorMsg] = useState(null);
+  const [editingCampus, setEditingCampus] = useState(null);
 
   // Form States
   const [hoForm, setHoForm] = useState({
@@ -40,7 +42,8 @@ export default function PlatformAdmin() {
     setCampuses(await campRes.json());
 
     const usrRes = await fetch("http://127.0.0.1:8000/api/v1/platform/users");
-    setUsers(await usrRes.json());
+    const usrData = await usrRes.json();
+    setUsers(usrData);
   };
 
   useEffect(() => {
@@ -71,20 +74,98 @@ export default function PlatformAdmin() {
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
-    await fetch("http://127.0.0.1:8000/api/v1/platform/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(userForm),
+    setErrorMsg(null); // Clear previous errors
+
+    // Clean up the payload
+    const payload = {
+      ...userForm,
+      head_off_id:
+        userForm.role_name === "individual_teacher"
+          ? null
+          : userForm.head_off_id
+            ? parseInt(userForm.head_off_id)
+            : null,
+      cam_id:
+        userForm.role_name === "individual_teacher"
+          ? null
+          : userForm.cam_id
+            ? parseInt(userForm.cam_id)
+            : null,
+    };
+
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8000/api/v1/platform/users",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // If FastAPI returns a 400, show the detail message
+        throw new Error(data.detail || "Failed to create user");
+      }
+
+      // Success! Clear the form and reload data
+      setUserForm({
+        first_name: "",
+        last_name: "",
+        email: "",
+        password: "",
+        role_name: "teacher",
+        head_off_id: "",
+        cam_id: "",
+      });
+      loadData();
+    } catch (err) {
+      setErrorMsg(err.message);
+    }
+  };
+
+  const handleDeactivateHO = async (head_off_id) => {
+    if (
+      !window.confirm(
+        "Are you sure you want to deactivate this Head Office? This will hide it from the platform.",
+      )
+    )
+      return;
+
+    await fetch(
+      `http://127.0.0.1:8000/api/v1/platform/head-offices/${head_off_id}`,
+      {
+        method: "DELETE",
+      },
+    );
+    loadData();
+  };
+
+  const handleDeactivateCampus = async (cam_id) => {
+    if (!window.confirm("Are you sure you want to deactivate this campus?"))
+      return;
+    await fetch(`http://127.0.0.1:8000/api/v1/platform/campuses/${cam_id}`, {
+      method: "DELETE",
     });
-    setUserForm({
-      first_name: "",
-      last_name: "",
-      email: "",
-      password: "",
-      role_name: "teacher",
-      head_off_id: "",
-      cam_id: "",
-    });
+    loadData();
+  };
+
+  const handleToggleUser = async (usr_id, currentStaId) => {
+    // ADD THIS CONFIRMATION
+    if (!window.confirm("Are you sure you want to deactivate this user?"))
+      return;
+
+    const isCurrentlyActive = Number(currentStaId) === 1;
+    const newStatus = !isCurrentlyActive;
+
+    await fetch(
+      `http://127.0.0.1:8000/api/v1/platform/users/${usr_id}/status?is_active=${newStatus}`,
+      {
+        method: "PUT",
+      },
+    );
     loadData();
   };
 
@@ -154,14 +235,28 @@ export default function PlatformAdmin() {
                   <th className="p-4 font-medium text-gray-600">Name</th>
                   <th className="p-4 font-medium text-gray-600">Email</th>
                   <th className="p-4 font-medium text-gray-600">City</th>
+                  <th className="p-4 font-medium text-gray-600">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {headOffices.map((ho) => (
-                  <tr key={ho.head_off_id} className="border-b last:border-0">
+                  <tr
+                    key={ho.head_off_id}
+                    className="border-b last:border-0 hover:bg-gray-50"
+                  >
                     <td className="p-4 font-medium">{ho.head_off_name}</td>
                     <td className="p-4">{ho.email || "-"}</td>
                     <td className="p-4">{ho.city || "-"}</td>
+                    <td className="p-4">
+                      {" "}
+                      {/* <-- ADDED */}
+                      <button
+                        onClick={() => handleDeactivateHO(ho.head_off_id)}
+                        className="text-red-600 hover:underline text-sm font-medium"
+                      >
+                        Deactivate
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -225,14 +320,26 @@ export default function PlatformAdmin() {
                   <th className="p-4 font-medium text-gray-600">Campus</th>
                   <th className="p-4 font-medium text-gray-600">Head Office</th>
                   <th className="p-4 font-medium text-gray-600">City</th>
+                  <th className="p-4 font-medium text-gray-600">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {campuses.map((c) => (
-                  <tr key={c.cam_id} className="border-b last:border-0">
+                  <tr
+                    key={c.cam_id}
+                    className="border-b last:border-0 hover:bg-gray-50"
+                  >
                     <td className="p-4 font-medium">{c.cam_name}</td>
                     <td className="p-4">{c.head_off_name}</td>
                     <td className="p-4">{c.city || "-"}</td>
+                    <td className="p-4">
+                      <button
+                        onClick={() => handleDeactivateCampus(c.cam_id)}
+                        className="text-red-600 hover:underline text-sm font-medium"
+                      >
+                        Deactivate
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -246,6 +353,12 @@ export default function PlatformAdmin() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 col-span-1">
             <h2 className="text-lg font-bold mb-4">Add User</h2>
+            {/* ADD THIS ERROR DISPLAY */}
+            {errorMsg && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm font-medium">
+                {errorMsg}
+              </div>
+            )}
             <form onSubmit={handleCreateUser} className="space-y-3">
               <input
                 type="text"
@@ -360,20 +473,48 @@ export default function PlatformAdmin() {
                   <th className="p-4 font-medium text-gray-600">Name</th>
                   <th className="p-4 font-medium text-gray-600">Email</th>
                   <th className="p-4 font-medium text-gray-600">Role</th>
+                  <th className="p-4 font-medium text-gray-600">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map((u) => (
-                  <tr key={u.usr_id} className="border-b last:border-0">
-                    <td className="p-4 font-medium">
-                      {u.first_name} {u.last_name}
-                    </td>
-                    <td className="p-4">{u.email}</td>
-                    <td className="p-4 capitalize">
-                      {u.roles ? u.roles.replace(/_/g, " ") : "No Role"}
+                {users && users.length > 0 ? (
+                  users.map((u, index) => {
+                    // 1. Safely check if active
+                    const isActive = Number(u.sta_id) === 1;
+
+                    // 2. Safely format roles (in case roles is null)
+                    const roleDisplay = u.roles
+                      ? u.roles.replace(/_/g, " ")
+                      : "No Role";
+
+                    return (
+                      <tr
+                        key={`${u.usr_id}-${index}`}
+                        className="border-b last:border-0 hover:bg-gray-50"
+                      >
+                        <td className="p-4 font-medium">
+                          {u.first_name} {u.last_name}
+                        </td>
+                        <td className="p-4">{u.email}</td>
+                        <td className="p-4 capitalize">{roleDisplay}</td>
+                        <td className="p-4">
+                          <button
+                            onClick={() => handleToggleUser(u.usr_id, u.sta_id)}
+                            className="text-red-600 hover:underline text-sm font-medium"
+                          >
+                            {isActive ? "Deactivate" : "Activate"}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="4" className="p-4 text-center text-gray-500">
+                      No users found.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
