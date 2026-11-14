@@ -95,8 +95,9 @@ def get_users():
                 COALESCE(STRING_AGG(DISTINCT h.head_off_name, ', '), '-') AS head_office,
                 COALESCE(STRING_AGG(DISTINCT c.cam_name, ', '), '-') AS campus
             FROM users u
-            LEFT JOIN user_roles ur ON u.usr_id = ur.usr_id
-            LEFT JOIN roles r ON ur.rol_id = r.rol_id
+            -- We use an INNER JOIN here to ONLY get users with active roles
+            JOIN user_roles ur ON u.usr_id = ur.usr_id AND ur.sta_id = fn_get_status_id('general', 'active')
+            JOIN roles r ON ur.rol_id = r.rol_id
             LEFT JOIN head_offices h ON ur.head_off_id = h.head_off_id
             LEFT JOIN campuses c ON ur.cam_id = c.cam_id
             WHERE u.sta_id = fn_get_status_id('general', 'active')
@@ -104,7 +105,7 @@ def get_users():
             ORDER BY u.usr_id DESC
         """)
         return cursor.fetchall()
-
+    
 @router.post("/users")
 def create_user(data: UserCreate):
     conn = psycopg.connect(get_connection_string())
