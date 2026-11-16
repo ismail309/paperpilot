@@ -1,5 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from backend.config import get_connection_string
+from fastapi.responses import StreamingResponse
+from backend.core.pdf_generator import generate_exam_pdf
 from psycopg.rows import dict_row
 import psycopg
 from pydantic import BaseModel
@@ -90,7 +92,14 @@ def get_exams():
     conn = psycopg.connect(get_connection_string())
     with conn.cursor(row_factory=dict_row) as cursor:
         cursor.execute("""
-            SELECT e.exa_id, e.exa_title, s.sub_name, e.created_at, ev.total_marks, ev.sta_id
+            SELECT 
+                e.exa_id, 
+                e.exa_title, 
+                s.sub_name, 
+                e.created_at, 
+                ev.exv_id,
+                ev.total_marks, 
+                ev.sta_id
             FROM exams e
             JOIN subjects s ON e.sub_id = s.sub_id
             JOIN exam_versions ev ON e.exa_id = ev.exa_id
@@ -108,3 +117,47 @@ def get_exam_paper(exv_id: int):
             WHERE evq.exv_id = %s
         """, (exv_id,))
         return cursor.fetchall()
+
+@router.get("/{exv_id}/pdf")
+def download_exam_pdf(exv_id: int):
+    conn = psycopg.connect(get_connection_string())
+    try:
+        with conn.cursor(row_factory=dict_row) as cursor:
+            # 1. Get Exam Info
+            cursor.execute("""
+                SELECT e.exa_title, s.sub_name 
+                FROM exam_versions ev
+                JOIN exams e ON ev.exa_id = e.exa_id
+                JOIN subjects s ON e.sub_id = s.sub_id
+                WHERE ev.exv_id = %s
+            """, (exv_id,))
+            exam_info = cursor.fetchone()
+            
+            if not exam_info:
+                raise HTTPException(status_code=404, detail="Exam not found")
+
+            # 2. Get Questions
+            cursor.execute("""
+                SELECT question_snapshot FROM exam_version_questions 
+                WHERE exv_id = %s ORDER BY evq_id
+            """, (exv_id,))
+            questions = cursor.fetchall()
+
+            # 3. Generate PDF
+            pdf_buffer = generate_exam_pdf(
+                exam_info['exa_title'], 
+                exam_info['sub_name'], 
+                questions
+            )
+
+            # 4. Return as a downloadable file
+            filename = f"Exam_{exv_id}.pdf"
+            return StreamingResponse(
+                pdf_buffer, 
+                media_type="application/pdf",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
