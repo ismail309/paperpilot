@@ -1,3 +1,15 @@
 {
-    "python.terminal.useEnvFile": true
+  "python.terminal.useEnvFile": true,
+  "sqltools.connections": [
+    {
+      "ssh": "Disabled",
+      "previewLimit": 50,
+      "server": "localhost",
+      "port": 5432,
+      "driver": "PostgreSQL",
+      "name": "PaperPilot_localhost_dev",
+      "username": "postgres",
+      "database": "paperpilot"
+    }
+  ]
 }
