@@ -5,6 +5,7 @@ from backend.api import dashboard as dashboard_router
 from backend.api import auth as auth_router
 from backend.api import platform as platform_router
 from backend.api import academic as academic_router
+from backend.api import questions as questions_router
 
 app = FastAPI(
     title="PaperPilot API",
@@ -26,6 +27,7 @@ app.include_router(auth_router.router, prefix="/api/v1/auth", tags=["Authenticat
 app.include_router(dashboard_router.router, prefix="/api/v1", tags=["Dashboard"])
 app.include_router(platform_router.router, prefix="/api/v1/platform", tags=["Platform Admin"])
 app.include_router(academic_router.router, prefix="/api/v1/academic", tags=["Academic"])
+app.include_router(questions_router.router, prefix="/api/v1/questions", tags=["Questions"])
 @app.get("/")
 def health_check():
     return {"status": "healthy", "project": "PaperPilot"}
