@@ -200,3 +200,19 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- ==========================================
+-- UTILITY: Grant App Permissions
+-- ==========================================
+/**
+ * @description Grants the restricted application user (paperpilot_app) 
+ * read/write access to all tables and sequences in the public schema.
+ * @usage Call this function at the end of any migration that creates new tables.
+ */
+CREATE OR REPLACE FUNCTION grant_app_permissions()
+RETURNS VOID AS $$
+BEGIN
+    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO paperpilot_app;
+    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO paperpilot_app;
+END;
+$$ LANGUAGE plpgsql;

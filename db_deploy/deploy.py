@@ -167,7 +167,7 @@ def main():
     # 2. Deploy to Database
     try:
         conn = get_db_connection()
-        conn.autocommit = False 
+        conn.autocommit = True 
         cursor = conn.cursor()
 
         # 1. Setup Tracking Table

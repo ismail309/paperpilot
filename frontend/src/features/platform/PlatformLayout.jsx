@@ -2,6 +2,7 @@
 import { useState } from "react";
 import PlatformAdmin from "./PlatformAdmin";
 import ManageIndividuals from "./ManageIndividuals";
+import AcademicStructure from "./AcademicStructure";
 
 export default function PlatformLayout({ data, onLogout }) {
   const [activeNav, setActiveNav] = useState("dashboard");
@@ -26,6 +27,12 @@ export default function PlatformLayout({ data, onLogout }) {
             className={`w-full text-left block px-4 py-2 rounded-lg font-medium ${activeNav === "manage" ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-gray-100"}`}
           >
             Manage Tenants & Users
+          </button>
+          <button
+            onClick={() => setActiveNav("academic")}
+            className={`w-full text-left block px-4 py-2 rounded-lg font-medium ${activeNav === "academic" ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-gray-100"}`}
+          >
+            Academic Structure
           </button>
           {/* NEW NAVIGATION BUTTON */}
           <button
@@ -121,6 +128,7 @@ export default function PlatformLayout({ data, onLogout }) {
         )}
         {activeNav === "manage" && <PlatformAdmin />}
         {activeNav === "individuals" && <ManageIndividuals />}
+        {activeNav === "academic" && <AcademicStructure />}
       </main>
     </div>
   );

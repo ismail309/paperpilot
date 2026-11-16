@@ -1,8 +1,8 @@
 // frontend/src/App.jsx
 import { useState, useEffect } from "react";
-import Auth from "./Auth";
-import TenantLayout from "./TenantLayout";
-import PlatformLayout from "./PlatformLayout";
+import Auth from "./features/auth/AuthPage";
+import TenantLayout from "./features/tenant/TenantLayout";
+import PlatformLayout from "./features/platform/PlatformLayout";
 
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem("paperpilot_token"));
