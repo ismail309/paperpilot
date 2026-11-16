@@ -3,6 +3,7 @@ import PlatformAdmin from "./ManageTenants"; // Assuming PlatformAdmin was renam
 import ManageIndividuals from "./ManageIndividuals";
 import AcademicStructure from "./AcademicStructure";
 import QuestionBank from "./QuestionBank";
+import ExamBuilder from "./ExamBuilder";
 
 export default function PlatformLayout({ data, onLogout }) {
   const [activeNav, setActiveNav] = useState("dashboard");
@@ -58,6 +59,12 @@ export default function PlatformLayout({ data, onLogout }) {
           >
             Platform Question Bank
           </button>
+          <button
+            onClick={() => setActiveNav("exams")}
+            className={`w-full text-left block px-4 py-2 rounded-lg font-medium transition ${activeNav === "exams" ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-gray-100"}`}
+          >
+            Examination Builder
+          </button>
         </nav>
 
         <div className="p-4 border-t border-gray-200 shrink-0">
@@ -79,6 +86,7 @@ export default function PlatformLayout({ data, onLogout }) {
             {activeNav === "individuals" && "Individual Users"}
             {activeNav === "academic" && "Academic Structure"}
             {activeNav === "questions" && "Platform Question Bank"}
+            {activeNav === "exams" && "Examination Builder"}
           </h1>
           <div className="flex items-center gap-4">
             <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
@@ -149,6 +157,7 @@ export default function PlatformLayout({ data, onLogout }) {
         {activeNav === "individuals" && <ManageIndividuals />}
         {activeNav === "academic" && <AcademicStructure />}
         {activeNav === "questions" && <QuestionBank />}
+        {activeNav === "exams" && <ExamBuilder />}
       </main>
     </div>
   );

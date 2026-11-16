@@ -10,6 +10,7 @@ INSERT INTO statuses (sta_group, sta_name, description) VALUES
 ('question', 'pending_review', 'Question is awaiting review'),
 ('question', 'approved', 'Question is approved'),
 ('question', 'rejected', 'Question was rejected'),
+('exam', 'draft', 'Exam is in draft mode'),
 ('exam', 'finalised', 'Exam is finalised and locked'),
 ('exam', 'published', 'Exam is published to students'),
 ('exam', 'completed', 'Exam has been completed'),
